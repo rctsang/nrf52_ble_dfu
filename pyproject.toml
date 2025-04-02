@@ -1,0 +1,8 @@
+[project]
+name = "nrf52_ble_dfu"
+version = "0.1"
+requires-python = ">= 3.12"
+dependencies = [
+    "bleak >= 0.22.3",
+    "protobuf == 5.29.3",
+]
