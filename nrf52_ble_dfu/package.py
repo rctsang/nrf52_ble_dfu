@@ -51,6 +51,7 @@ class DFUPackage:
         if isinstance(fwtype, int):
             fwtype = FwType.Name(fwtype)
         assert isinstance(fwtype, str), "invalid fwtype param type: {}".format(type(fwtype))
+        fwtype = fwtype.upper()
         assert fwtype in FwType.keys(), "invalid fwtype: {}".format(fwtype)
         fwtype = fwtype.lower()
         assert fwtype in self.objects, "package missing fwtype: {}".format(fwtype)

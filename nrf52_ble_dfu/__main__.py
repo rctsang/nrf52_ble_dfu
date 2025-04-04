@@ -24,12 +24,16 @@ def get_log_name(path: Path=None):
     return path
 
 parser = argparse.ArgumentParser()
+parser.add_argument("target_name", type=str, default="DfuTarg",
+    help="name of update target")
 parser.add_argument("pkg_path", type=Path,
     help="path to the update package zip file")
 parser.add_argument("--mode", type=DFUMode, default=DFUMode.SECURE,
     help="update type (L: legacy, O: open, S: secure, B: buttonless) (default: S)")
 parser.add_argument("--log", type=Path, default=Path("dfu.log"),
     help="path to log file")
+parser.add_argument("--print-init", nargs='+', type=str, default=[],
+    help="print the init packet contents of specified firmware types (bootloader, softdevice, application)")
 
 args = parser.parse_args()
 
@@ -46,6 +50,14 @@ log.setLevel(logging.DEBUG)
 assert args.pkg_path.exists(), \
     "file not found: {}".format(str(pkg_path))
 
+if args.print_init:
+    pkg = DFUPackage(args.pkg_path)
+    for fw_type in args.print_init:
+        pkt = pkg.get_init_packet(fw_type)
+        print(pkt)
+    exit(0)
+
+
 assert args.mode == DFUMode.SECURE, \
     "other dfu modes not supported"
 
@@ -55,4 +67,4 @@ from .remote.secure import dfu
 
 pkg = DFUPackage(args.pkg_path)
 
-asyncio.run(dfu(pkg, log=log))
+asyncio.run(dfu(args.target_name, pkg, log=log))

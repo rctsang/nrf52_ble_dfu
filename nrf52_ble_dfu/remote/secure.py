@@ -28,7 +28,6 @@ from ..package import (
 
 from ..remote import (
     Notification,
-    DFUTARG_ADDRESS,
     DFU_CTRL_POINT_UUID,
     DFU_PACKET_UUID,
 )
@@ -48,12 +47,13 @@ class SecureDFUClient(BleakClient):
     automatically sets up notifications
     """
 
-    def __init__(self, log: Logger=None, pkt_size=20, prn=0):
+    def __init__(self, target: BLEDevice, log: Logger=None, pkt_size=20, prn=0):
         self.log = log if log else logging.getLogger("SecureDFUClient")
         self.res_q = Queue()
         self.pkt_size = pkt_size
         self.prn = prn
-        super().__init__(DFUTARG_ADDRESS,
+        self.target = target
+        super().__init__(target.address,
             disconnected_callback=None,
             timeout=None,
         )
@@ -499,7 +499,7 @@ async def transfer_image(client: SecureDFUClient, image: DFUImage, log: Logger =
 
     return DFUErrorCode.REMOTE_SECURE_DFU_SUCCESS
 
-async def dfu(pkg: DFUPackage, log: Logger = None):
+async def dfu(target_name: str, pkg: DFUPackage, log: Logger = None):
     if not log:
         log = logging.getLogger()
 
@@ -515,7 +515,11 @@ async def dfu(pkg: DFUPackage, log: Logger = None):
         assert_never("todo")
 
     log.info(f"connecting to client...")
-    async with SecureDFUClient(log=log) as client:
+    target = await BleakScanner.find_device_by_name(target_name)
+    if not target:
+        log.error(f"FAILURE: could not find target {target_name}")
+        raise DFUErrorCode.FAILED_TO_CONNECT.as_err()
+    async with SecureDFUClient(target, log=log) as client:
         for image_type in ["bootloader", "softdevice", "application"]:
             log.info(f"starting {image_type} transfer...")
             if image_type not in pkg.manifest:
