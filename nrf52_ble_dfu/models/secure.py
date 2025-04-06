@@ -334,3 +334,6 @@ class SecureDFUPacketReceiptNotification:
             details = f"[ offset={self.offset:#x}; crc={self.crc:#010x} ]"
 
         return f"PRN: {self.req_opcode.name} - {status}:{details}"
+
+    def ok(self):
+        return self.status == SecureDFUResultCode.SUCCESS    

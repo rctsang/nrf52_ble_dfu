@@ -32,6 +32,8 @@ parser.add_argument("--mode", type=DFUMode, default=DFUMode.SECURE,
     help="update type (L: legacy, O: open, S: secure, B: buttonless) (default: S)")
 parser.add_argument("--log", type=Path, default=Path("dfu.log"),
     help="path to log file")
+parser.add_argument("-v", dest='debug', action='store_true', default=False,
+    help="show debug output")
 parser.add_argument("--print-init", nargs='+', type=str, default=[],
     help="print the init packet contents of specified firmware types (bootloader, softdevice, application)")
 
@@ -45,7 +47,9 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(log_fmt)
 log.addHandler(file_handler)
 log.addHandler(stream_handler)
-log.setLevel(logging.DEBUG)
+lvl = logging.DEBUG if args.debug else logging.INFO
+log.setLevel(lvl)
+
 
 assert args.pkg_path.exists(), \
     "file not found: {}".format(str(pkg_path))
@@ -63,7 +67,7 @@ assert args.mode == DFUMode.SECURE, \
 
 log.info(f"starting dfu with pkg {str(args.pkg_path)}")
 
-from .remote.secure import SecureDFUManager
+from .protocol.secure import SecureDFUManager
 
 pkg = DFUPackage(args.pkg_path)
 
