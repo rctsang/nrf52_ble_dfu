@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from enum import Enum
 
-from .package import DFUPackage
+from .models.package import DFUPackage
 
 class DFUMode(str, Enum):
     LEGACY      ="L"
@@ -24,10 +24,10 @@ def get_log_name(path: Path=None):
     return path
 
 parser = argparse.ArgumentParser()
-parser.add_argument("target_name", type=str, default="DfuTarg",
-    help="name of update target")
 parser.add_argument("pkg_path", type=Path,
     help="path to the update package zip file")
+parser.add_argument("--target", type=str, default="DfuTarg",
+    help="name of update target")
 parser.add_argument("--mode", type=DFUMode, default=DFUMode.SECURE,
     help="update type (L: legacy, O: open, S: secure, B: buttonless) (default: S)")
 parser.add_argument("--log", type=Path, default=Path("dfu.log"),
@@ -63,8 +63,10 @@ assert args.mode == DFUMode.SECURE, \
 
 log.info(f"starting dfu with pkg {str(args.pkg_path)}")
 
-from .remote.secure import dfu
+from .remote.secure import SecureDFUManager
 
 pkg = DFUPackage(args.pkg_path)
 
-asyncio.run(dfu(args.target_name, pkg, log=log))
+dfu_mgr = SecureDFUManager(args.target, pkg, log=log)
+
+asyncio.run(dfu_mgr.run())
