@@ -39,3 +39,9 @@ The `nrf52_ble_dfu` module can be run as a script to automatically pair with the
 python -m nrf52_ble_dfu /path/to/package.zip
 ```
 
+# State Machine
+
+This is a simplified representation of the state machine implemented in `nrf52_ble_dfu.protocol.secure`.
+There are many state variables that are not represented here, but this gives an idea of the edge transitions and when they should happen.
+
+![dfu state machine](docs/assets/dfu-fsm.svg)
