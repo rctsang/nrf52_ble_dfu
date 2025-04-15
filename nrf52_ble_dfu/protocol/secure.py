@@ -536,6 +536,7 @@ class TransferringObjectStateHandler(TxStateHandler):
     total_pkts = None
     pkts_sent = None
     object_data = None
+    pkts_checked = None
 
     @classmethod
     async def entry(cls, context) -> TxStatus:
@@ -551,6 +552,7 @@ class TransferringObjectStateHandler(TxStateHandler):
         cls.total_pkts = (len(context.object) + cls.GATT_PKT_SIZE - 1) // cls.GATT_PKT_SIZE
         cls.pkts_sent = 0
         cls.object_data = bytearray(context.object)
+        cls.pkts_checked = 0
 
         return TxStatus.HANDLED
 
@@ -564,12 +566,6 @@ class TransferringObjectStateHandler(TxStateHandler):
             context.objects_sent += 1
             return context.transition(SecureTxState.VALIDATE_OBJECT)
 
-        remaining_pkts = cls.total_pkts - cls.pkts_sent
-        if not (cls.pkts_sent % cls.DEFAULT_PRN) and remaining_pkts < context.prn:
-            # fewer packets left to send than the prn, update it now
-            res = await context.set_prn_value(remaining_pkts)
-            check_response(res)
-
         # prepare the next packet
         context.pkt = cls.object_data[:cls.GATT_PKT_SIZE]
         cls.object_data = cls.object_data[cls.GATT_PKT_SIZE:]
@@ -581,7 +577,7 @@ class TransferringObjectStateHandler(TxStateHandler):
         cls.pkts_sent += 1
         context.bytes_sent += len(context.pkt)
 
-        if cls.pkts_sent % context.prn:
+        if (cls.pkts_sent - cls.pkts_checked) % context.prn:
             # no PRN expected, send another packet
             return TxStatus.HANDLED
         else:
@@ -602,6 +598,16 @@ class TransferringObjectStateHandler(TxStateHandler):
                 context.log.error(f"crc mismatch! expected: {context.local_crc:#x}, got: {context.target_crc:#x}")
                 # raise DFUErrorCode.CRC_ERROR.as_err()
                 return context.transition(SecureTxState.VALIDATE_OBJECT)
+
+            cls.pkts_checked = cls.pkts_sent
+
+            remaining_pkts = cls.total_pkts - cls.pkts_sent
+            if remaining_pkts and remaining_pkts < context.prn:
+                # if fewer packets left to send than the prn, 
+                # update it now
+                context.log.info(f"setting PRN = {remaining_pkts}")
+                res = await context.set_prn_value(remaining_pkts)
+                check_response(res)
 
             return TxStatus.HANDLED
 
